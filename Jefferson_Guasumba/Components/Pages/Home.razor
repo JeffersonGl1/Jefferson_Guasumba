@@ -1,0 +1,28 @@
+﻿@page "/"
+
+<PageTitle>Home</PageTitle>
+
+<div class="row">
+    <div class="col-12">
+        <h2 class="fw-bolder"> Bienvenido a la Plataforma de Registro de Tareas </h2>
+    </div>
+</div>
+
+<div class="col-12">
+    <div class="card">
+        <div class="card-body">
+
+            <AuthorizeView>
+
+                <NotAuthorized>
+
+                    <span> No estas loggeado. Por favor <a class="fw-bolder" href="/login"> Ingresa Aqui!!</a> </span>
+
+                </NotAuthorized>
+
+            </AuthorizeView>
+
+        </div>
+
+    </div>
+</div>

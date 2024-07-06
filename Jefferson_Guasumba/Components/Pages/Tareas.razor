@@ -1,0 +1,325 @@
+﻿@page "/tareas"
+@using System.Data
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Hosting.Server.Features
+@using Newtonsoft.Json
+@using Newtonsoft.Json.Linq
+@attribute [StreamRendering]
+@inject NavigationManager NavManager
+@rendermode InteractiveServer
+@attribute [Authorize(Roles = "ADMINISTRADOR")]
+
+
+<PageTitle>Tareas</PageTitle>
+
+<h1>Tareas</h1>
+
+
+<button type="button" class="btn btn-warning btn-sm" data-bs-toggle="modal" data-bs-target="#registrarModal">
+    Registrar Tarea   <i class="fa fa-pencil"></i>
+</button>
+
+
+@if (res == null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    @if (res.StatusCode == System.Net.HttpStatusCode.OK)
+    {
+
+        @if (dt != null && dt.Rows.Count > 0)
+        {
+           
+
+
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Id</th>
+                        <th>Titulo</th>
+                        <th>Descripcion</th>
+                        <th>Fecha de Creacion (F)</th>
+                        <th>Fecha de Vencimiento</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach ( DataRow row in dt.Rows)
+                    {
+                        <tr>
+                            <td>@Convert.ToString(row["Id"])</td>
+                            <td>@Convert.ToString(row["Titulo"])</td>
+                            <td>@Convert.ToString(row["Descripcion"])</td>
+                            <td>@Convert.ToDateTime(row["FechaCreacion"])</td>
+                            <td>@Convert.ToDateTime(row["FechaVencimiento"])</td>
+                            <td>
+                                <button type="button" class="btn btn-warning btn-sm" data-bs-toggle="modal" data-bs-target="#modificarModal" @onclick="@(() => idTarea  = @Convert.ToInt32(row["Id"]) )">
+                                    <i class="fa fa-pencil"></i>
+                                </button>
+                                &nbsp;
+                                <button type="button" class=" btn btn-danger btn-sm" @onclick="@(async () => {idTarea  = @Convert.ToInt32(row["Id"]);  await eliminarTarea(); })">
+                                    <i class="fa fa-trash"></i>
+                                </button>
+
+
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+        else
+        {
+
+            <p><em>No existen Datos</em></p>
+        
+        
+        }
+
+
+
+
+
+
+
+
+    }
+    else
+    
+    {
+        <p><em>Servicio no disponible</em></p>
+    
+    }
+
+
+
+    <div class="modal fade" id="modificarModal" tabindex="1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+
+
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h1 class="modal-title fs-5"> Modificar Tarea</h1>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form>
+                        <div class="mb-3 row">
+                            <label class="clo-sm-2 col-form-label">Titulo</label>
+                            <div class="col-sm-10">
+
+                                <input type="text" class="form-control" @bind="@titulo" @oninput="@(ui => { titulo = (string?) ui.Value;})">
+
+                            </div>
+                        </div>
+                        <div class="mb-3 row">
+                            <label class="clo-sm-2 col-form-label">Descripcion</label>
+                            <div class="col-sm-10">
+
+                                <input type="text" class="form-control" @bind="@descripcion" @oninput="@(ui => { descripcion = (string?) ui.Value;})">
+
+                            </div>
+                        </div>
+                        <div class="mb-3 row">
+                            <label class="clo-sm-2 col-form-label">Fecha Creacion</label>
+                            <div class="col-sm-10">
+
+                                <input type="date" class="form-control" @bind="@fechaC" @oninput="@(ui => { fechaC = Convert.ToDateTime(ui.Value);})">
+
+                            </div>
+                        </div>
+                        <div class="mb-3 row">
+                            <label class="clo-sm-2 col-form-label">Fecha Vencimiento</label>
+                            <div class="col-sm-10">
+
+                                <input type="date" class="form-control" @bind="@fechaV" @oninput="@(ui => { fechaV = Convert.ToDateTime(ui.Value);})">
+
+                            </div>
+                        </div>
+                    </form>
+
+                </div>
+
+
+               
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal"> Cerrar</button>
+                    <button type="button" class="btn btn-success btn-sm" @onclick="async() => await modificarTarea()"> Guardar</button>
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <div class="modal fade" id="registrarModal" tabindex="1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+
+
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h1 class="modal-title fs-5"> Nueva Tarea</h1>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form>
+                        <div class="mb-3 row">
+                            <label class="clo-sm-2 col-form-label">Titulo</label>
+                            <div class="col-sm-10">
+                               
+                                <input type="text" class="form-control"  @bind = "@titulo"   @oninput="@(ui => { titulo = (string?) ui.Value;})" >
+
+                            </div>
+                        </div>
+                        <div class="mb-3 row">
+                            <label class="clo-sm-2 col-form-label">Descripcion</label>
+                            <div class="col-sm-10">
+                           
+                                <input type="text" class="form-control" @bind="@descripcion" @oninput="@(ui => { descripcion = (string?) ui.Value;})">
+
+                            </div>
+                        </div>
+                        <div class="mb-3 row">
+                            <label class="clo-sm-2 col-form-label">Fecha Creacion</label>
+                            <div class="col-sm-10">
+
+                                <input type="date" class="form-control" @bind="@fechaC" @oninput="@(ui => { fechaC = Convert.ToDateTime(ui.Value);})">
+
+                            </div>
+                        </div>
+                        <div class="mb-3 row">
+                            <label class="clo-sm-2 col-form-label">Fecha Vencimiento</label>
+                            <div class="col-sm-10">
+                         
+                                <input type="date" class="form-control" @bind="@fechaV" @oninput="@(ui => { fechaV = Convert.ToDateTime(ui.Value);})">
+
+                            </div>
+                        </div>
+                    </form>
+
+                </div>
+
+
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal"> Cerrar</button>
+                    
+                    <button type="button" class="btn btn-success btn-sm" @onclick="async() => await registrarTarea()"> Guardar</button>
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+
+
+  
+}
+
+@code {
+
+
+    HttpResponseMessage? res;
+
+    DataTable? dt;
+
+    string? titulo;
+    string? descripcion;
+    DateTime? fechaC;
+    DateTime? fechaV;
+    int idTarea;
+
+    protected override async Task OnInitializedAsync()
+    {
+
+        using var client = new HttpClient();
+
+        res = await client.GetAsync("https://localhost:7016/api/ApiTareas/ListarTareas");
+
+        var jsonO = JObject.Parse(await res.Content.ReadAsStringAsync());
+
+        dt = JsonConvert.DeserializeObject<DataTable>(jsonO["datos"].ToString());
+
+
+    }
+
+
+    public async Task registrarTarea()
+    {
+
+        using var client = new HttpClient();
+
+        var form = new MultipartFormDataContent();
+
+
+        form.Add(new StringContent(titulo) ,name:"Titulo" );
+        form.Add(new StringContent(descripcion), name: "Descripcion");
+        form.Add(new StringContent(Convert.ToString(fechaC)), name: "FechaCreacion");
+        form.Add(new StringContent(Convert.ToString(fechaV)), name: "FechaVencimiento");
+        form.Add(new StringContent(Convert.ToString(0)), name: "Completada");
+
+        var response = await client.PostAsync("https://localhost:7016/api/ApiTareas/RegistrarTarea", form);
+
+        NavManager.NavigateTo(NavManager.Uri, true);
+
+
+
+
+
+    }
+
+
+    public async Task modificarTarea()
+    {
+
+        using var client = new HttpClient();
+
+        var form = new MultipartFormDataContent();
+
+        form.Add(new StringContent(Convert.ToString(idTarea)), name: "Id");
+        form.Add(new StringContent(titulo), name: "Titulo");
+        form.Add(new StringContent(descripcion), name: "Descripcion");
+        form.Add(new StringContent(Convert.ToString(fechaC)), name: "FechaCreacion");
+        form.Add(new StringContent(Convert.ToString(fechaV)), name: "FechaVencimiento");
+        form.Add(new StringContent(Convert.ToString(0)), name: "Completada");
+
+        var response = await client.PostAsync("https://localhost:7016/api/ApiTareas/ModificarTarea", form);
+
+        NavManager.NavigateTo(NavManager.Uri, true);
+
+
+
+
+
+    }
+
+
+    public async Task eliminarTarea()
+    {
+
+        using var client = new HttpClient();
+
+        
+
+        var response = await client.GetAsync("https://localhost:7016/api/ApiTareas/Eliminar/" + idTarea);
+
+
+
+        NavManager.NavigateTo(NavManager.Uri, true);
+
+
+
+
+
+    }
+
+
+
+   
+
+ 
+}

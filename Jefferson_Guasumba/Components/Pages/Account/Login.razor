@@ -1,0 +1,117 @@
+﻿@page "/login"
+@using Jefferson_Guasumba.Models.Entities
+@using Jefferson_Guasumba.Models.Views
+@using Microsoft.AspNetCore.Authentication
+@using Microsoft.AspNetCore.Authentication.Cookies
+@using Newtonsoft.Json
+@using Newtonsoft.Json.Linq
+@using System.Data
+@using System.Security.Claims
+@inject NavigationManager navManager
+
+<div>
+    <div class="col-lg-4 offset-lg-4 pb-4 pt-4 border">
+        <EditForm Model="@Model" OnValidSubmit="IniciarSesion" FormName="LoginForm">
+            <DataAnnotationsValidator/>
+                <div class="mb-3 text-center flex-column">
+                    <h3> LOGIN</h3>
+
+                </div>
+                <div class="mb-3">
+                    <label >Usuario</label>
+                    <InputText @bind-Value = "Model.Usuario" class="form-control" placeholder = "Usuario"/>
+                    <ValidationMessage For="()=> Model.Usuario"/>
+                </div>
+                <div class="mb-3">
+                    <label>Contraseña</label>
+                    <InputText @bind-Value="Model.Password" class="form-control" placeholder="Contraseña" />
+                    <ValidationMessage For="()=> Model.Password" />
+                </div>
+
+                <div class="mb-3 text-center">
+                    <span class="text-danger">@errorMensaje</span>
+                </div>
+                <div class="mb-3 d-grid gap-2">
+                    <button type="submit" class="btn btn-primary">Ingresar</button>
+                </div>
+
+  
+        </EditForm>
+
+
+    </div>
+
+
+</div>
+
+
+@code {
+
+    [CascadingParameter]
+    public HttpContext? httpContext { get; set; }
+
+    [SupplyParameterFromForm]
+
+    public LoginModel Model { get; set; } = new();
+
+    private string? usuario;
+
+    private string? password;
+
+    private string? errorMensaje;
+
+    private async Task IniciarSesion()
+    {
+
+
+        using var client = new HttpClient();
+
+
+
+        var response = await client.GetAsync("https://localhost:7016/api/ApiTareas/Login/" + Model.Usuario + "/" + Model.Password);
+
+
+
+
+        if (response.StatusCode == System.Net.HttpStatusCode.OK)
+        {
+            var jObject = JObject.Parse(await response.Content.ReadAsStringAsync());
+
+
+            var dt = JsonConvert.DeserializeObject<DataTable>(jObject["valor"].ToString());
+
+
+            if (dt?.Rows.Count > 0)
+            {
+
+
+                var usuario = new UsuarioCuenta { Id = Convert.ToInt32(dt.Rows[0]["Id"]), Usuario = Convert.ToString(dt.Rows[0]["Usuario"]), Password = Convert.ToString(dt.Rows[0]["Passwrd"]), Rol = Convert.ToString(dt.Rows[0]["Rol"]), Nombre =  Convert.ToString(dt.Rows[0]["Nombre"]) };
+
+                var claims = new List<Claim>
+                {
+                    new Claim(ClaimTypes.Name, Model.Usuario),
+                    new Claim(ClaimTypes.Role, usuario.Rol)
+                };
+
+                var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+                var principal = new ClaimsPrincipal(identity);
+
+                await httpContext.SignInAsync(principal);
+
+                navManager.NavigateTo("/");
+            }
+            else
+            {
+                errorMensaje = "Usuario no registrado";
+
+                return;
+            }
+
+
+
+        }
+    }
+
+
+
+}
